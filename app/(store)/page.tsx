@@ -30,7 +30,6 @@ export default async function StorePage() {
       .order("name")
 
 
-
     if (catData) categories = catData
 
     const { data: products, error: prodError } = await supabase
