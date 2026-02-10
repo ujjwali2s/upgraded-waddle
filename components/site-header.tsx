@@ -1,6 +1,6 @@
 import Link from "next/link"
+import { cache } from "react"
 import { getSession } from "@/lib/session"
-import pool from "@/lib/db"
 import { createClient } from "@/lib/supabase/server"
 import { Package, ShoppingCart, User, LogOut, LayoutDashboard, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,53 @@ import { SignOutButton } from "@/components/sign-out-button"
 import { MobileNav } from "@/components/mobile-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+// Cache user profile data for the duration of the request
+const getUserProfile = cache(async (userId: string) => {
+  try {
+    const supabase = await createClient()
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select(`
+        role,
+        profiles!inner(full_name, username),
+        wallets!inner(balance)
+      `)
+      .eq('id', userId)
+      .single()
+
+    if (userData && !userError) {
+      const profileData = Array.isArray(userData.profiles) ? userData.profiles[0] : userData.profiles
+      const walletData = Array.isArray(userData.wallets) ? userData.wallets[0] : userData.wallets
+
+      return {
+        role: userData.role,
+        full_name: profileData?.full_name,
+        username: profileData?.username,
+        balance: walletData?.balance
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching user profile:", error)
+  }
+  return null
+})
+
+// Cache categories for the duration of the request
+const getCategories = cache(async () => {
+  try {
+    const supabase = await createClient()
+    const { data: catData } = await supabase
+      .from("categories")
+      .select("id, name, slug")
+      .order("name")
+
+    return catData || []
+  } catch (error) {
+    console.error("Error fetching categories:", error)
+    return []
+  }
+})
+
 export async function SiteHeader() {
   let user = null
   let profile = null
@@ -26,39 +73,21 @@ export async function SiteHeader() {
 
   try {
     const session = await getSession()
+
+    // Execute queries in parallel for better performance
+    const [profileData, categoriesData] = await Promise.all([
+      session ? getUserProfile(session.userId) : Promise.resolve(null),
+      getCategories()
+    ])
+
     if (session) {
-      user = { id: session.userId, email: session.email } // Mock user object for UI compatibility
-
-      const client = await pool.connect()
-      try {
-        // Fetch profile - Adjust query if you merged users/profiles or kept them separate
-        // Based on previous files, we have public.users and public.profiles
-        const { rows } = await client.query(`
-                SELECT u.role, p.full_name, p.username, w.balance
-                FROM public.users u
-                LEFT JOIN public.profiles p ON u.id = p.id
-                LEFT JOIN public.wallets w ON u.id = w.user_id
-                WHERE u.id = $1
-            `, [session.userId])
-
-        if (rows.length > 0) {
-          profile = rows[0]
-        }
-      } finally {
-        client.release()
-      }
+      user = { id: session.userId, email: session.email }
+      profile = profileData
     }
 
-    // Fetch categories for mobile nav
-    const supabase = await createClient()
-    const { data: catData } = await supabase
-      .from("categories")
-      .select("id, name, slug")
-      .order("name")
-
-    if (catData) categories = catData
+    categories = categoriesData
   } catch (error) {
-    console.error("SiteHeader auth error:", error)
+    console.error("SiteHeader error:", error)
   }
 
   return (

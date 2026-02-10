@@ -66,7 +66,7 @@ export default function AdminProductsPage() {
   const loadData = async () => {
     const supabase = createClient()
     const [prodRes, catRes] = await Promise.all([
-      supabase.from("products").select("*").order("created_at", { ascending: false }),
+      supabase.from("products").select("*").neq("status", "deleted").order("created_at", { ascending: false }),
       supabase.from("categories").select("*").order("name"),
     ])
     setProducts(prodRes.data || [])
@@ -150,13 +150,28 @@ export default function AdminProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return
 
-    const supabase = createClient()
-    const { error } = await supabase.from("products").delete().eq("id", id)
-    if (error) {
-      toast.error(error.message)
-    } else {
+    try {
+      const response = await fetch(`/api/admin/products/delete?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to delete product')
+        return
+      }
+
       toast.success("Product deleted")
+      // Update local state immediately
+      setProducts(currentProducts => currentProducts.filter(p => p.id !== id))
+
+      // Refresh data in background
+      router.refresh()
       loadData()
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast.error('Failed to delete product')
     }
   }
 

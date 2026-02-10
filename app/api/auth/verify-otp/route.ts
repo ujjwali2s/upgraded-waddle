@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
     try {
@@ -9,35 +9,44 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Email and OTP are required" }, { status: 400 })
         }
 
-        const client = await pool.connect()
-        try {
-            // 1. Get user by email
-            const result = await client.query('SELECT * FROM public.users WHERE email = $1', [email])
-            if (result.rowCount === 0) {
-                return NextResponse.json({ error: "User not found" }, { status: 404 })
-            }
-            const user = result.rows[0]
+        const supabase = await createClient()
 
-            // 2. Check OTP
-            if (!user.otp_code || user.otp_code !== otp) {
-                return NextResponse.json({ error: "Invalid OTP" }, { status: 400 })
-            }
+        // 1. Get user by email
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .single()
 
-            if (new Date(user.otp_expires_at) < new Date()) {
-                return NextResponse.json({ error: "OTP has expired" }, { status: 400 })
-            }
-
-            // 3. Verify User
-            await client.query(`
-                UPDATE public.users 
-                SET is_verified = TRUE, otp_code = NULL, otp_expires_at = NULL 
-                WHERE id = $1
-            `, [user.id])
-
-            return NextResponse.json({ success: true })
-        } finally {
-            client.release()
+        if (userError || !user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 })
         }
+
+        // 2. Check OTP
+        if (!user.otp_code || user.otp_code !== otp) {
+            return NextResponse.json({ error: "Invalid OTP" }, { status: 400 })
+        }
+
+        if (new Date(user.otp_expires_at) < new Date()) {
+            return NextResponse.json({ error: "OTP has expired" }, { status: 400 })
+        }
+
+        // 3. Verify User
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({
+                is_verified: true,
+                otp_code: null,
+                otp_expires_at: null
+            })
+            .eq('id', user.id)
+
+        if (updateError) {
+            console.error("Update error:", updateError)
+            return NextResponse.json({ error: "Failed to verify user" }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true })
     } catch (error) {
         console.error("Verify OTP error:", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/session"
 import pool from "@/lib/db"
+import { sendOrderNotification } from "@/lib/email"
 
 interface CartItem {
   id: string
@@ -107,6 +108,39 @@ export async function POST(request: Request) {
         }
 
         await client.query('COMMIT')
+
+        // Send order notification email to admin
+        try {
+          // Fetch user email
+          const { rows: userRows } = await client.query(
+            'SELECT email FROM public.users WHERE id = $1',
+            [session.userId]
+          )
+          const userEmail = userRows[0]?.email || session.email || 'Unknown'
+
+          // Prepare order items for email
+          const orderItems = items.map(item => ({
+            product_name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          }))
+
+          // Send notification email (don't wait for it to complete)
+          sendOrderNotification(
+            orderId,
+            userEmail,
+            orderItems,
+            total,
+            paymentMethod
+          ).catch(emailError => {
+            console.error('Failed to send order notification email:', emailError)
+            // Don't fail the order if email fails
+          })
+        } catch (emailError) {
+          console.error('Error preparing order notification:', emailError)
+          // Don't fail the order if email preparation fails
+        }
+
         return NextResponse.json({ success: true, orderId })
       }
 
