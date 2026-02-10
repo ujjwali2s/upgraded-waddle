@@ -4,7 +4,9 @@ import { CategorySidebar } from "@/components/category-sidebar"
 import { ProductGrid } from "@/components/product-grid"
 import { Plane } from "lucide-react"
 
-// Cache categories for the duration of the request
+export const revalidate = 60
+
+
 const getCategories = cache(async () => {
   try {
     const supabase = await createClient()
@@ -20,7 +22,7 @@ const getCategories = cache(async () => {
   }
 })
 
-// Cache products for the duration of the request
+
 const getProducts = cache(async () => {
   try {
     const supabase = await createClient()
@@ -43,7 +45,7 @@ const getProducts = cache(async () => {
       price: p.price,
       availability: p.availability,
       status: p.status,
-      category_name: "General", // Default category since table might be missing
+      category_name: "General",
     }))
   } catch (error) {
     console.error("Error fetching products:", error)
@@ -52,7 +54,7 @@ const getProducts = cache(async () => {
 })
 
 export default async function StorePage() {
-  // Execute queries in parallel for better performance
+
   const [categories, formattedProducts] = await Promise.all([
     getCategories(),
     getProducts()
@@ -60,22 +62,7 @@ export default async function StorePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* <div className="mb-8 rounded-xl border border-border bg-card p-8">
-        <div className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
-            <Plane className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-balance text-2xl font-bold text-card-foreground md:text-3xl">
-              Premium Shipping Accounts & Labels
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              Get verified FedEx, DHL, UPS, and USPS accounts. All products are
-              digital and delivered instantly after purchase.
-            </p>
-          </div>
-        </div>
-      </div> */}
+
 
       <div className="flex flex-col gap-6 lg:flex-row">
         <CategorySidebar categories={categories} />

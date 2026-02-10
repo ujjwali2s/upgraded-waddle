@@ -122,3 +122,39 @@ export const sendOrderNotification = async (
         html
     )
 }
+
+export const sendPasswordResetOTP = async (email: string, otp: string) => {
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset Your Password</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Reset Password</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="color: #4b5563; font-size: 16px;">Hello,</p>
+                    <p style="color: #4b5563; font-size: 16px;">
+                        You have requested to reset your password. Please use the following One-Time Password (OTP) to proceed.
+                    </p>
+                    <div style="background-color: #f3f4f6; padding: 20px; text-align: center; margin: 25px 0; border-radius: 8px;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937;">${otp}</span>
+                    </div>
+                    <p style="color: #4b5563; font-size: 14px;">
+                        This code will expire in 10 minutes. If you did not request this, please ignore this email.
+                    </p>
+                </div>
+                <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; color: #6b7280; font-size: 14px;">ShipsPro Security Team</p>
+                </div>
+            </div>
+        </body>
+        </html>
+    `
+    return await sendData(email, "Reset Your Password - ShipsPro", html)
+}

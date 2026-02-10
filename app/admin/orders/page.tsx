@@ -1,4 +1,4 @@
-import pool from "@/lib/db"
+import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShoppingCart } from "lucide-react"
 import { OrderActions } from "@/components/admin/order-actions"
@@ -28,52 +28,63 @@ export default async function AdminOrdersPage(props: {
   searchParams: Promise<{ userId?: string; status?: string }>
 }) {
   const searchParams = await props.searchParams
-  const client = await pool.connect()
+  const supabase = await createClient()
   let orders = []
   const userId = searchParams?.userId
   const status = searchParams?.status
 
   try {
-    // Fetch orders
-    let query = `
-        SELECT o.*, u.full_name, u.email as username 
-        FROM public.orders o
-        LEFT JOIN public.users u ON o.user_id = u.id
-      `
-
-    const values = []
-    const conditions = []
+    // Build query
+    let query = supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
 
     if (userId) {
-      values.push(userId)
-      conditions.push(`o.user_id = $${values.length}`)
+      query = query.eq("user_id", userId)
     }
 
     if (status) {
-      values.push(status)
-      conditions.push(`o.status = $${values.length}`)
+      query = query.eq("status", status)
     }
 
-    if (conditions.length > 0) {
-      query += ` WHERE ` + conditions.join(" AND ")
+    const { data: orderData, error: orderError } = await query
+
+    if (orderError) throw orderError
+
+    // Fetch associated data
+    if (orderData && orderData.length > 0) {
+      // Fetch users
+      const userIds = Array.from(new Set(orderData.map((o: any) => o.user_id))).filter(Boolean)
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, full_name, email")
+        .in("id", userIds)
+
+      // Fetch Items
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("*")
+        .in("order_id", orderData.map((o: any) => o.id))
+
+      // Merge data
+      orders = orderData.map((order: any) => { // Use 'any' or define interface if possible, keeping 'any' to match existing style
+        const user = users?.find((u: any) => u.id === order.user_id)
+        const orderItems = items?.filter((i: any) => i.order_id === order.id) || []
+
+        return {
+          ...order,
+          profiles: {
+            full_name: user?.full_name || null,
+            username: user?.email || null
+          },
+          order_items: orderItems
+        }
+      })
     }
-
-    query += ` ORDER BY o.created_at DESC`
-
-    const { rows: orderRows } = await client.query(query, values)
-
-    // Fetch Items for all orders (Optimization: fetch all at once or lazily, for now simple loop is okay if low traffic, BUT separate query is better)
-    // Actually, let's fetch items separately and attach
-    const { rows: itemRows } = await client.query(`SELECT * FROM public.order_items`)
-
-    orders = orderRows.map((order: any) => ({
-      ...order,
-      profiles: { full_name: order.full_name, username: order.username }, // Map user data
-      order_items: itemRows.filter((i: any) => i.order_id === order.id)
-    }))
-
-  } finally {
-    client.release()
+  } catch (error) {
+    console.error("Error fetching orders:", error)
+    // Handle error gracefully or rethrow if needed, for now we let it show empty state or logs
   }
 
   const filterButton = (s: string | undefined, label: string) => (
