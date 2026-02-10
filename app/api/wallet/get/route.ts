@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     const client = await pool.connect()
     try {
-        const { rows } = await client.query('SELECT balance FROM public.wallets WHERE user_id = $1', [session.userId])
+        const { rows } = await client.query('SELECT balance FROM public.users WHERE id = $1', [session.userId])
         if (rows.length === 0) {
             return NextResponse.json({ balance: 0 })
         }

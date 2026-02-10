@@ -23,21 +23,20 @@ const getUserProfile = cache(async (userId: string) => {
       .from('users')
       .select(`
         role,
-        profiles!inner(full_name, username),
-        wallets!inner(balance)
+        balance,
+        profiles!inner(full_name, username)
       `)
       .eq('id', userId)
       .single()
 
     if (userData && !userError) {
       const profileData = Array.isArray(userData.profiles) ? userData.profiles[0] : userData.profiles
-      const walletData = Array.isArray(userData.wallets) ? userData.wallets[0] : userData.wallets
 
       return {
         role: userData.role,
         full_name: profileData?.full_name,
         username: profileData?.username,
-        balance: walletData?.balance
+        balance: userData.balance
       }
     }
   } catch (error) {

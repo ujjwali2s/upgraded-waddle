@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
-import { createAdminClient } from "@/lib/supabase/admin"
+import pool from "@/lib/db"
 import { sendPasswordResetOTP } from "@/lib/email"
 
 export async function POST(request: Request) {
+    const client = await pool.connect()
     try {
         const { email } = await request.json()
 
@@ -10,27 +11,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Email is required" }, { status: 400 })
         }
 
-        const supabase = createAdminClient()
-
         // 1. Check if user exists
-        console.log(`Searching for user with email: '${email}'`)
-        const { data: user, error: fetchError } = await supabase
-            .from('users')
-            .select('id, full_name')
-            .ilike('email', email)
-            .single()
-
-        if (fetchError) {
-            console.error("User lookup error:", fetchError)
-        }
+        const { rows: userRows } = await client.query(
+            "SELECT id, full_name FROM public.users WHERE email ILIKE $1",
+            [email]
+        )
+        const user = userRows[0]
 
         if (!user) {
-            console.log("User not found in 'users' table.")
-            // Security: Don't reveal if user exists
-            // But for detailed UX we might want to, let's Stick to standard practice which is usually ambiguous or explicit depending on requirement.
-            // User asked for "give a forget password option to user", usually implies friendly UX.
-            // For now, let's return success even if user doesn't exist to prevent enumeration, unless debugging.
-            // Actually, let's return specific error for better UX as this is an internal tool/app from context.
             return NextResponse.json({ error: "User not found" }, { status: 404 })
         }
 
@@ -39,18 +27,10 @@ export async function POST(request: Request) {
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
         // 3. Update User
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({
-                otp_code: otp,
-                otp_expires_at: expiresAt.toISOString()
-            })
-            .eq('id', user.id)
-
-        if (updateError) {
-            console.error("OTP Update Error:", updateError)
-            return NextResponse.json({ error: "Failed to generate OTP" }, { status: 500 })
-        }
+        await client.query(
+            "UPDATE public.users SET otp_code = $1, otp_expires_at = $2 WHERE id = $3",
+            [otp, expiresAt.toISOString(), user.id]
+        )
 
         // 4. Send Email
         await sendPasswordResetOTP(email, otp)
@@ -60,5 +40,7 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Forgot Password Error:", error)
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    } finally {
+        client.release()
     }
 }

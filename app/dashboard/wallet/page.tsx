@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Wallet } from "lucide-react"
+import { AddFunds } from "./components/add-funds"
 
 export default async function WalletPage() {
   const session = await getSession()
@@ -18,8 +19,8 @@ export default async function WalletPage() {
   let wallet = null
 
   try {
-    const { rows } = await client.query('SELECT * FROM public.wallets WHERE user_id = $1', [session.userId])
-    wallet = rows[0]
+    const { rows } = await client.query('SELECT balance FROM public.users WHERE id = $1', [session.userId])
+    wallet = { balance: rows[0]?.balance || 0 }
   } finally {
     client.release()
   }
@@ -58,6 +59,8 @@ export default async function WalletPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AddFunds />
     </div>
   )
 }

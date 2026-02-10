@@ -20,7 +20,7 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/admin/wallets", label: "Wallets", icon: Wallet },
+  { href: "/admin/wallets", label: "Balance", icon: Wallet },
 ]
 
 export function AdminNav() {

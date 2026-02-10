@@ -22,8 +22,8 @@ export default async function DashboardPage() {
     const { rows: profiles } = await client.query('SELECT * FROM public.profiles WHERE id = $1', [session.userId])
     const profile = profiles[0]
 
-    const { rows: wallets } = await client.query('SELECT * FROM public.wallets WHERE user_id = $1', [session.userId])
-    const wallet = wallets[0]
+    const { rows: userRows } = await client.query('SELECT balance FROM public.users WHERE id = $1', [session.userId])
+    const wallet = { balance: userRows[0]?.balance || 0 }
 
     const { rows: orders } = await client.query('SELECT * FROM public.orders WHERE user_id = $1 ORDER BY created_at DESC', [session.userId])
 

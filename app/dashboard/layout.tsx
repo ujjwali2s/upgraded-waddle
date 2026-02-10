@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 
 import { getSession } from "@/lib/session"
-import pool from "@/lib/db"
+import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardLayout({
   children,
@@ -18,16 +18,15 @@ export default async function DashboardLayout({
     redirect("/auth/login")
   }
 
-  const client = await pool.connect()
-  try {
-    const { rows } = await client.query('SELECT is_verified FROM public.users WHERE id = $1', [session.userId])
-    const user = rows[0]
+  const supabase = await createClient()
+  const { data: user } = await supabase
+    .from('users')
+    .select('is_verified')
+    .eq('id', session.userId)
+    .single()
 
-    if (user && !user.is_verified) {
-      redirect("/auth/verify")
-    }
-  } finally {
-    client.release()
+  if (user && !user.is_verified) {
+    redirect("/auth/verify")
   }
 
   return (

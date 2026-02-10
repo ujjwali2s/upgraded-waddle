@@ -12,7 +12,6 @@ import {
 import { Minus, Plus, Trash2, ShoppingCart, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
 interface CartItem {
@@ -40,9 +39,14 @@ export default function CartPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const supabase = createClient()
-      const { data } = await supabase.auth.getUser()
-      setIsLoggedIn(!!data.user)
+      try {
+        const res = await fetch("/api/auth/me")
+        const data = await res.json()
+        setIsLoggedIn(!!data.user)
+      } catch (error) {
+        console.error("Auth check failed", error)
+        setIsLoggedIn(false)
+      }
     }
     checkAuth()
   }, [])
@@ -153,7 +157,7 @@ export default function CartPage() {
               <Button variant="outline">Continue Shopping</Button>
             </Link>
             {isLoggedIn ? (
-              <Link href="/dashboard/checkout">
+              <Link href="/checkout">
                 <Button className="gap-1.5">
                   Checkout
                   <ArrowRight className="h-4 w-4" />

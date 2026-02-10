@@ -10,9 +10,8 @@ export default async function AdminUsersPage() {
   try {
     const { rows } = await client.query(`
         SELECT u.id, u.email, u.role, u.full_name, u.is_verified, 
-               w.balance
+               u.balance
         FROM public.users u
-        LEFT JOIN public.wallets w ON u.id = w.user_id
         ORDER BY u.created_at DESC
       `)
 
@@ -67,12 +66,12 @@ export default async function AdminUsersPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {profile.email}
-                    {profile.username && ` | @${profile.username}`}
+                    {profile.username && ` | @${profile.username} `}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <a
-                    href={`/admin/orders?userId=${profile.id}`}
+                    href={`/ admin / orders ? userId = ${profile.id} `}
                     className="flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
                     title="View Orders"
                   >

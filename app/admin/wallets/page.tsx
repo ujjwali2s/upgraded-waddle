@@ -36,19 +36,14 @@ export default function AdminWalletsPage() {
   const loadData = async () => {
     const supabase = createClient()
     const { data } = await supabase
-      .from("wallets")
-      .select("*, profiles(full_name, username)")
+      .from("users")
+      .select("id, full_name, email, balance")
 
-    const formatted = (data || []).map((w) => ({
-      id: w.id,
-      user_id: w.user_id,
-      balance: Number(w.balance),
-      profile_name:
-        (w.profiles as { full_name: string | null; username: string | null } | null)
-          ?.full_name ||
-        (w.profiles as { full_name: string | null; username: string | null } | null)
-          ?.username ||
-        "Unknown",
+    const formatted = (data || []).map((u: any) => ({
+      id: u.id, // This is wallet id in interface, but we can use user id
+      user_id: u.id,
+      balance: Number(u.balance || 0),
+      profile_name: u.full_name || u.email || "Unknown"
     }))
     setWallets(formatted)
     setIsLoading(false)
@@ -75,9 +70,9 @@ export default function AdminWalletsPage() {
     const newBalance = Math.max(0, selectedWallet.balance + delta)
 
     const { error } = await supabase
-      .from("wallets")
+      .from("users")
       .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq("id", selectedWallet.id)
+      .eq("id", selectedWallet.user_id)
 
     if (error) {
       toast.error(error.message)
