@@ -39,6 +39,7 @@ export const sendOrderNotification = async (
     total: number,
     paymentMethod: string
 ) => {
+    console.log(`Preparing to send order notification to ${process.env.ORDER_NOTIFICATION_EMAIL || 'Shipspro.orders@gmail.com'}...`)
     const orderItemsHtml = items.map(item => `
         <tr>
             <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${item.product_name}</td>

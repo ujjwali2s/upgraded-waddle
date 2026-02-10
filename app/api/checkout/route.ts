@@ -125,20 +125,23 @@ export async function POST(request: Request) {
             price: item.price
           }))
 
-          // Send notification email (don't wait for it to complete)
-          sendOrderNotification(
-            orderId,
-            userEmail,
-            orderItems,
-            total,
-            paymentMethod
-          ).catch(emailError => {
+          // Send notification email
+          try {
+            console.log(`Sending order notification to ${process.env.ORDER_NOTIFICATION_EMAIL || 'Shipspro.orders@gmail.com'} for order ${orderId}`)
+            await sendOrderNotification(
+              orderId,
+              userEmail,
+              orderItems,
+              total,
+              paymentMethod
+            )
+            console.log(`Order notification sent successfully for order ${orderId}`)
+          } catch (emailError) {
             console.error('Failed to send order notification email:', emailError)
-            // Don't fail the order if email fails
-          })
+            // We still don't fail the order if email fails, but we log it clearly
+          }
         } catch (emailError) {
           console.error('Error preparing order notification:', emailError)
-          // Don't fail the order if email preparation fails
         }
 
         return NextResponse.json({ success: true, orderId })
