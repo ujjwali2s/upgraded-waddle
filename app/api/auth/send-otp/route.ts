@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
         // Update profile
         const { error: updateError } = await supabase
-            .from("profiles")
+            .from("users")
             .update({
                 otp_code: otp,
                 otp_expires_at: expiresAt.toISOString(),
