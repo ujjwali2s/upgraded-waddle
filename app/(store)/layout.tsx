@@ -1,4 +1,6 @@
 import React from "react"
+export const dynamic = "force-dynamic"
+
 import { SiteHeader } from "@/components/site-header"
 
 export default function StoreLayout({

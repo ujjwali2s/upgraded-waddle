@@ -1,4 +1,6 @@
 import React from "react"
+export const dynamic = "force-dynamic"
+
 import { getSession } from "@/lib/session"
 import { SiteHeader } from "@/components/site-header"
 import { AdminNav } from "@/components/admin-nav"
