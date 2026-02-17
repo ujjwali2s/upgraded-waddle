@@ -59,7 +59,7 @@ export function MobileNav({ user, profile, categories }: MobileNavProps) {
                         {user ? (
                             <div className="flex flex-col gap-1 border-b pb-4">
                                 <SheetTitle className="font-semibold text-lg">
-                                    {profile?.full_name || profile?.username || "My Account"}
+                                    {profile?.username || ((profile?.full_name && profile.full_name !== 'test') ? profile.full_name : user.email.split('@')[0])}
                                 </SheetTitle>
                                 <p className="text-sm text-muted-foreground">{user.email}</p>
                                 <div className="mt-2 flex items-center gap-2 text-primary font-medium">

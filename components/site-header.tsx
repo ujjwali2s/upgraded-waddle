@@ -26,6 +26,8 @@ const getUserProfile = cache(async (userId: string) => {
       .single()
 
     if (userData && !userError) {
+      // If full_name is "test" or empty, and username is null, we'll prefer the email prefix eventually
+      // But for now, just return the data as is. The display logic will handle the fallbacks.
       return {
         role: userData.role,
         full_name: userData.full_name,
@@ -118,7 +120,7 @@ export async function SiteHeader() {
                   <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">
-                      {profile?.username || profile?.full_name || user.email?.split("@")[0]}
+                      {profile?.username || ((profile?.full_name && profile.full_name !== 'test') ? profile.full_name : user.email?.split("@")[0])}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>

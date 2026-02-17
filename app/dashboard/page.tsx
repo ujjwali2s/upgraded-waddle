@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
+            Welcome back, {profile?.username || ((profile?.full_name && profile.full_name !== 'test') ? profile.full_name : session.email.split('@')[0])}
           </h1>
           <p className="text-muted-foreground">
             Manage your orders, wallet, and profile.
