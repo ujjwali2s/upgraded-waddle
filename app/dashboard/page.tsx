@@ -19,11 +19,9 @@ export default async function DashboardPage() {
 
   const client = await pool.connect()
   try {
-    const { rows: profiles } = await client.query('SELECT * FROM public.profiles WHERE id = $1', [session.userId])
-    const profile = profiles[0]
-
-    const { rows: userRows } = await client.query('SELECT balance FROM public.users WHERE id = $1', [session.userId])
-    const wallet = { balance: userRows[0]?.balance || 0 }
+    const { rows: userRows } = await client.query('SELECT full_name, username, balance FROM public.users WHERE id = $1', [session.userId])
+    const profile = userRows[0]
+    const wallet = { balance: profile?.balance || 0 }
 
     const { rows: orders } = await client.query('SELECT * FROM public.orders WHERE user_id = $1 ORDER BY created_at DESC', [session.userId])
 

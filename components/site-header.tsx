@@ -21,21 +21,15 @@ const getUserProfile = cache(async (userId: string) => {
     const supabase = await createClient()
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select(`
-        role,
-        balance,
-        profiles!inner(full_name, username)
-      `)
+      .select('role, balance, full_name, username')
       .eq('id', userId)
       .single()
 
     if (userData && !userError) {
-      const profileData = Array.isArray(userData.profiles) ? userData.profiles[0] : userData.profiles
-
       return {
         role: userData.role,
-        full_name: profileData?.full_name,
-        username: profileData?.username,
+        full_name: userData.full_name,
+        username: userData.username,
         balance: userData.balance
       }
     }

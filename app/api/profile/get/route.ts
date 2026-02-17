@@ -11,13 +11,9 @@ export async function GET(request: Request) {
     const client = await pool.connect()
     try {
         const { rows } = await client.query(`
-      SELECT 
-        u.email, 
-        p.full_name, 
-        p.username 
-      FROM public.users u
-      LEFT JOIN public.profiles p ON u.id = p.id
-      WHERE u.id = $1
+      SELECT email, full_name, username 
+      FROM public.users
+      WHERE id = $1
     `, [session.userId])
 
         if (rows.length === 0) {
