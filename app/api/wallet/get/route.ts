@@ -15,10 +15,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ balance: 0 })
         }
         return NextResponse.json({ balance: Number(rows[0].balance) })
-    } catch (error) {
-        console.error("Wallet Fetch Error", error)
-        return NextResponse.json({ error: "Internal Error" }, { status: 500 })
+    } catch (error: any) {
+        console.error("Wallet Fetch Error:", error)
+        return NextResponse.json({ error: error.message || "Internal Error" }, { status: 500 })
     } finally {
-        client.release()
+        if (client) client.release()
     }
 }
